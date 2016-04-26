@@ -1,3 +1,16 @@
+// Copyright 2016 José Santos <henrique_1609@me.com>
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package fastprinter
 
 import (
@@ -12,10 +25,11 @@ type floatInfo struct {
 }
 
 var (
-	float64info = floatInfo{52, 11, -1023}
-	floatNaN    = []byte{'N', 'a', 'N'}
-	floatNinf   = []byte{'-', 'I', 'n', 'f'}
-	floatPinf   = []byte{'+', 'I', 'n', 'f'}
+	float64info      = floatInfo{52, 11, -1023}
+	floatNaN         = []byte("Nan")
+	floatNinf        = []byte("-Inf")
+	floatPinf        = []byte("+Inf")
+	pool_floatBuffer = newByteSliceBufferPool(800)
 )
 
 func PrintFloat(w io.Writer, f float64) (int, error) {
@@ -200,8 +214,9 @@ type decimalSlice struct {
 
 // %f: -ddddddd.ddddd
 func fmtF(dst io.Writer, neg bool, d decimalSlice, prec int) (n int, err error) {
-	a := formatbitsBytesPool.Get().(*formatbitsBytes)
+	a := pool_floatBuffer.Get().(*byteSliceBuffer)
 	i := 0
+
 	// sign
 	if neg {
 		a.bytes[i] = '-'
@@ -217,7 +232,7 @@ func fmtF(dst io.Writer, neg bool, d decimalSlice, prec int) (n int, err error) 
 			i++
 		}
 	} else {
-		a.bytes[i] = 0
+		a.bytes[i] = '0'
 		i++
 	}
 
@@ -235,7 +250,7 @@ func fmtF(dst io.Writer, neg bool, d decimalSlice, prec int) (n int, err error) 
 		}
 	}
 	n, err = dst.Write(a.bytes[0:i])
-	formatbitsBytesPool.Put(a)
+	pool_floatBuffer.Put(a)
 	return
 }
 

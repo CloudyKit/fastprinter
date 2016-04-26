@@ -1,3 +1,16 @@
+// Copyright 2016 José Santos <henrique_1609@me.com>
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 package fastprinter
 
 import (
@@ -18,7 +31,7 @@ func (*devNull) Write(_ []byte) (int, error) {
 var ww io.Writer = (*devNull)(nil)
 
 type testWriter struct {
-	main  [defaultBufSize * 64]byte
+	main  [stringBufferSize * 64]byte
 	bytes []byte
 }
 
@@ -66,7 +79,7 @@ func TestPrintBool(t *testing.T) {
 	}
 }
 
-var bigString = strings.Repeat("Hello World!", defaultBufSize)
+var bigString = strings.Repeat("Hello World!", stringBufferSize)
 
 func TestPrintString(t *testing.T) {
 
@@ -74,7 +87,7 @@ func TestPrintString(t *testing.T) {
 		const value = "Hello World"
 		PrintString(w, value)
 		w.Assert(value)
-		PrintStringSafe(w, bigString)
+		PrintString(w, bigString)
 		w.Assert(bigString)
 	})
 
@@ -155,12 +168,6 @@ func BenchmarkPrintFloatPrec(b *testing.B) {
 func BenchmarkPrintString(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		PrintString(ww, "-------------------------------------------------------------------------------")
-	}
-}
-
-func BenchmarkPrintStringSafe(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		PrintStringSafe(ww, "-------------------------------------------------------------------------------")
 	}
 }
 
