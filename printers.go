@@ -164,16 +164,17 @@ func formatBits(dst io.Writer, u uint64, neg bool) (int, error) {
 
 // PrintValue prints a reflect.Value
 func PrintValue(w io.Writer, v reflect.Value) (int, error) {
-	t := v.Type()
-	k := t.Kind()
+	v = maybeDereference(v, 2)
 
-	if t.Implements(fmtStringerType) {
+	if v.Type().Implements(fmtStringerType) {
 		return PrintString(w, v.Interface().(fmt.Stringer).String())
 	}
 
-	if t.Implements(errorType) {
+	if v.Type().Implements(errorType) {
 		return PrintString(w, v.Interface().(error).Error())
 	}
+
+	k := v.Kind()
 
 	if k == reflect.String {
 		return PrintString(w, v.String())
@@ -187,7 +188,7 @@ func PrintValue(w io.Writer, v reflect.Value) (int, error) {
 		return PrintUint(w, v.Uint())
 	}
 
-	if k == reflect.Float64 || k == reflect.Float64 {
+	if k == reflect.Float64 || k == reflect.Float32 {
 		return PrintFloat(w, v.Float())
 	}
 
@@ -195,9 +196,30 @@ func PrintValue(w io.Writer, v reflect.Value) (int, error) {
 		return PrintBool(w, v.Bool())
 	}
 
-	if k == reflect.Slice && t.Elem().Kind() == reflect.Uint8 {
+	if k == reflect.Slice && v.Type().Elem().Kind() == reflect.Uint8 {
 		return w.Write(v.Bytes())
 	}
 
 	return fmt.Fprint(w, v.Interface())
+}
+
+// dereference a certain depth of pointer indirection
+func maybeDereference(v reflect.Value, depth int) reflect.Value {
+	if depth <= 0 {
+		return v
+	}
+
+	if !v.IsValid() {
+		return v
+	}
+
+	if v.Kind() != reflect.Ptr || v.IsNil() {
+		return v
+	}
+
+	if v.Type().Implements(fmtStringerType) || v.Type().Implements(errorType) {
+		return v
+	}
+
+	return maybeDereference(reflect.Indirect(v), depth-1)
 }
