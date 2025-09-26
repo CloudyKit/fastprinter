@@ -58,10 +58,28 @@ func newByteSliceBufferPool(size int) sync.Pool {
 }
 
 func Print(w io.Writer, i interface{}) (int, error) {
+	n, err, ok := printNoReflect(w, i)
+	if err != nil {
+		return n, err
+	}
+
+	if ok {
+		return n, nil
+	}
+
 	return PrintValue(w, reflect.ValueOf(i))
 }
 
 func PrintPtr(w io.Writer, i interface{}) (int, error) {
+	n, err, ok := printNoReflect(w, i)
+	if err != nil {
+		return n, err
+	}
+
+	if ok {
+		return n, nil
+	}
+
 	return PrintValue(w, reflect.ValueOf(i).Elem())
 }
 
@@ -160,6 +178,71 @@ func formatBits(dst io.Writer, u uint64, neg bool) (int, error) {
 	counter, err := dst.Write(a.bytes[i:])
 	pool_integerBuffer.Put(a)
 	return counter, err
+}
+
+func printNoReflect(w io.Writer, v interface{}) (int, error, bool) {
+	if v == nil {
+		return 0, nil, true
+	}
+
+	switch v := v.(type) {
+	case string:
+		l, err := PrintString(w, v)
+		return l, err, true
+	case *string:
+		l, err := PrintString(w, *v)
+		return l, err, true
+	case int:
+		l, err := PrintInt(w, int64(v))
+		return l, err, true
+	case *int:
+		l, err := PrintInt(w, int64(*v))
+		return l, err, true
+	case int64:
+		l, err := PrintInt(w, v)
+		return l, err, true
+	case *int64:
+		l, err := PrintInt(w, *v)
+		return l, err, true
+	case uint64:
+		l, err := PrintUint(w, v)
+		return l, err, true
+	case *uint64:
+		l, err := PrintUint(w, *v)
+		return l, err, true
+	case float64:
+		l, err := PrintFloat(w, v)
+		return l, err, true
+	case *float64:
+		l, err := PrintFloat(w, *v)
+		return l, err, true
+	case float32:
+		l, err := PrintFloat(w, float64(v))
+		return l, err, true
+	case *float32:
+		l, err := PrintFloat(w, float64(*v))
+		return l, err, true
+	case bool:
+		l, err := PrintBool(w, v)
+		return l, err, true
+	case *bool:
+		l, err := PrintBool(w, *v)
+		return l, err, true
+	case []byte:
+		l, err := w.Write(v)
+		return l, err, true
+	case *[]byte:
+		l, err := w.Write(*v)
+		return l, err, true
+	case fmt.Stringer:
+		l, err := PrintString(w, v.String())
+		return l, err, true
+	case error:
+		l, err := PrintString(w, v.Error())
+		return l, err, true
+	default:
+		return 0, nil, false
+	}
 }
 
 // PrintValue prints a reflect.Value
