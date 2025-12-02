@@ -197,3 +197,10 @@ func BenchmarkPrintStringFmt(b *testing.B) {
 		fmt.Fprint(ww, "-------------------------------------------------------------------------------")
 	}
 }
+
+func BenchmarkBasePrintStr(b *testing.B) {
+	const value = "Hello World"
+	for i := 0; i < b.N; i++ {
+		Print(ww, value)
+	}
+}
